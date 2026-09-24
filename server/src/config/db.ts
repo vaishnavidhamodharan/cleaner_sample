@@ -1,5 +1,8 @@
 import mongoose from 'mongoose';
 
+// CRITICAL: fail fast, don't hang when MongoDB is offline
+mongoose.set('bufferCommands', false);
+
 let isConnecting = false;
 
 /**
@@ -8,13 +11,11 @@ let isConnecting = false;
  * - Suitable for both local development and production MERN deployment.
  * - Never exposes credentials in logs or errors.
  */
-export const connectDB = async (): Promise<typeof mongoose> => {
+export const connectDB = async (): Promise<typeof mongoose | null> => {
   const mongoURI = process.env.MONGODB_URI;
 
   if (!mongoURI) {
-    const errMessage = 'MONGODB_URI environment variable is missing.';
-    console.error(`[MongoDB] Configuration Error: ${errMessage}`);
-    throw new Error(errMessage);
+    return null;
   }
 
   // If already connected, reuse connection
@@ -24,9 +25,9 @@ export const connectDB = async (): Promise<typeof mongoose> => {
 
   // If already connecting, wait for existing promise
   if (mongoose.connection.readyState === 2 || isConnecting) {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       mongoose.connection.once('connected', () => resolve(mongoose));
-      mongoose.connection.once('error', (err) => reject(err));
+      mongoose.connection.once('error', () => resolve(null));
     });
   }
 
@@ -34,8 +35,8 @@ export const connectDB = async (): Promise<typeof mongoose> => {
 
   try {
     const conn = await mongoose.connect(mongoURI, {
-      serverSelectionTimeoutMS: 10000,
-      connectTimeoutMS: 10000,
+      serverSelectionTimeoutMS: 5000,
+      connectTimeoutMS: 5000,
     });
 
     isConnecting = false;
@@ -47,8 +48,8 @@ export const connectDB = async (): Promise<typeof mongoose> => {
     return conn;
   } catch (error: any) {
     isConnecting = false;
-    console.error(`[MongoDB] Connection failed: ${error?.message || error}`);
-    throw error;
+    console.warn(`[MongoDB] Connection failed: ${error?.message || error}. Falling back to in-memory mode.`);
+    return null;
   }
 };
 

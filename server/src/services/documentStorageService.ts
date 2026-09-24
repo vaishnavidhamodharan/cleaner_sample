@@ -38,9 +38,9 @@ export async function saveBufferToGridFS(
 ): Promise<mongoose.Types.ObjectId> {
   const bucket = getGridFsBucket();
   const uploadStream = bucket.openUploadStream(fileName, {
-    contentType,
     metadata: {
       ...metadata,
+      contentType,
       uploadedAt: new Date(),
       byteLength: buffer.length,
     },

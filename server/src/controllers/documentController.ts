@@ -1,8 +1,7 @@
 import { Response } from 'express';
 import fs from 'fs';
 import path from 'path';
-import mongoose from 'express';
-import { Types } from 'mongoose';
+import mongoose, { Types } from 'mongoose';
 import { AuthRequest } from '../middleware/authMiddleware';
 import { Document } from '../models/Document';
 import { extractTextFromDocument } from '../services/textExtractionService';
